@@ -188,6 +188,7 @@ tr:hover td { background: var(--primary-light); }
     </div>
     <div class="actions">
       <button class="btn btn-success hidden" id="exportBtn" onclick="exportXLSX()">&#x1F4BE; Export XLSX</button>
+      <button class="btn btn-outline hidden" id="exportCsvBtn" onclick="exportCSV()">Export CSV</button>
     </div>
   </div>
 
@@ -265,7 +266,6 @@ let overtimeData = [];
 let overtimeDailyByEmp = {};
 let overtimeTotalsByEmp = {};
 let xlsxRates = {};
-let xlsxRatesRaw = []; // full Hourly Rates sheet rows for export
 let employeeResults = [];
 let employeeExclusions = {};
 let employeeWCRateOverrides = {};
@@ -360,14 +360,12 @@ function handleXLSX(input) {
 
       // Read "Hourly Rates" sheet
       xlsxRates = {};
-      xlsxRatesRaw = [];
       const rateSheetName = workbook.SheetNames.find(n =>
         n.toLowerCase().includes('hourly rate')
       );
       if (rateSheetName) {
         const rateWs = workbook.Sheets[rateSheetName];
         const rateRows = XLSX.utils.sheet_to_json(rateWs, { header: 1 });
-        xlsxRatesRaw = rateRows; // store raw for export
         let nameCol = -1, rateCol = -1;
         for (let i = 0; i < Math.min(rateRows.length, 5); i++) {
           const row = rateRows[i];
@@ -643,6 +641,7 @@ function processData() {
 function renderAll() {
   document.getElementById('results').classList.remove('hidden');
   document.getElementById('exportBtn').classList.remove('hidden');
+  document.getElementById('exportCsvBtn').classList.remove('hidden');
 
   const config = getConfig();
   const included = employeeResults.filter(e => !e.excluded);
@@ -1022,22 +1021,10 @@ function exportXLSX() {
 
   XLSX.utils.book_append_sheet(wb, ws, 'New Crysp');
 
-  // ======== Rate Calculation sheet ========
+  // Rate Calculation sheet
   const rcData = [];
   rcData.push(['','','']);
-  // Derive date range from CSV data if possible
-  let dateRange = '';
-  if (timesheetRaw.length > 0) {
-    const dates = timesheetRaw.map(r => r.local_date || '').filter(Boolean).sort();
-    if (dates.length > 0) {
-      const first = dates[0], last = dates[dates.length - 1];
-      // Format as MM/DD/YYYY
-      const fmtDate = d => { const p = d.split('-'); return p.length === 3 ? p[1]+'/'+p[2]+'/'+p[0] : d; };
-      dateRange = fmtDate(first) + '-' + fmtDate(last);
-    }
-  }
-  if (!dateRange) dateRange = '08/24/2026-08/30/2026';
-  rcData.push(['','', dateRange]);
+  rcData.push(['','','08/24/2026-08/30/2026']);
   rcData.push(['','','']);
   included.forEach(e => {
     rcData.push([e.name, 'Gross Pay', e.totalGrossAll]);
@@ -1046,8 +1033,9 @@ function exportXLSX() {
   });
   const rcWs = XLSX.utils.aoa_to_sheet(rcData);
   // Style Rate Calculation sheet
+  let rcR = 1;
   if (rcWs['C2']) rcWs['C2'].s = { font:{bold:true, sz:11} };
-  let rcR = 3;
+  rcR = 3;
   included.forEach((e, i) => {
     const base = rcR + i*3;
     const a1 = XLSX.utils.encode_cell({r:base,c:0});
@@ -1057,101 +1045,52 @@ function exportXLSX() {
     const c2 = XLSX.utils.encode_cell({r:base+1,c:2});
     const b3 = XLSX.utils.encode_cell({r:base+2,c:1});
     const c3 = XLSX.utils.encode_cell({r:base+2,c:2});
+    if(ws[a1]) { } // name cell
     [a1].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sBoldName; });
     [b1,b2,b3].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sBold; });
     [c1,c2].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sNum2; });
-    if(rcWs[c3]) rcWs[c3].s = { numFmt:"0.000000000", font:{sz:10} };
+    if(rcWs[c3]) rcWs[c3].s = { numFmt:"0.000000000%", font:{sz:10} };
   });
   rcWs['!cols'] = [{wch:18},{wch:14},{wch:18}];
   XLSX.utils.book_append_sheet(wb, rcWs, 'Rate Calculation');
 
-  // ======== Summary sheet (placeholder like reference) ========
-  const sumData = [[''], [null, 'RSC/OF by Job']];
-  const sumWs = XLSX.utils.aoa_to_sheet(sumData);
-  if (sumWs['B2']) sumWs['B2'].s = { font:{bold:true, sz:12} };
-  sumWs['!cols'] = [{wch:12},{wch:20}];
-
-  // ======== Data sheet (CSV raw data with payrate & total pay) ========
-  const dataHeaders = ['fullname','fname','lname','number','group','local_date','local_day',
-    'local_start_time','local_end_time','tz','hours','jobcode_1','jobcode_2','jobcode_3',
-    'location','payrate','total pay'];
-  const dataRows = [dataHeaders];
-  timesheetRaw.forEach(r => {
-    const fullname = (r.fname || '') + ' ' + (r.lname || '');
-    const hours = parseFloat(r.hours) || 0;
-    const payrate = xlsxRates[fullname] || parseFloat(r.payrate) || 0;
-    const totalPay = hours * payrate;
-    dataRows.push([
-      fullname, r.fname||'', r.lname||'', r.number||0, r.group||'-',
-      r.local_date||'', r.local_day||'',
-      r.local_start_time||'', r.local_end_time||'',
-      r.tz||'', hours, r.jobcode_1||'', r.jobcode_2||'', r.jobcode_3||'',
-      r.location||'', payrate, totalPay
-    ]);
-  });
-  const dataWs = XLSX.utils.aoa_to_sheet(dataRows);
-  // Style Data headers
-  for (let c = 0; c < dataHeaders.length; c++) {
-    const addr = XLSX.utils.encode_cell({r:0,c:c});
-    if (dataWs[addr]) dataWs[addr].s = sGrayHdr;
-  }
-  dataWs['!cols'] = [
-    {wch:18},{wch:10},{wch:12},{wch:8},{wch:5},{wch:12},{wch:6},
-    {wch:16},{wch:16},{wch:5},{wch:8},{wch:14},{wch:12},{wch:10},
-    {wch:20},{wch:10},{wch:10}
-  ];
-
-  // ======== Hourly Rates sheet (from XLSX input) ========
-  let hrWs;
-  if (xlsxRatesRaw.length > 0) {
-    hrWs = XLSX.utils.aoa_to_sheet(xlsxRatesRaw);
-    // Style header row
-    if (xlsxRatesRaw[0]) {
-      for (let c = 0; c < xlsxRatesRaw[0].length; c++) {
-        const addr = XLSX.utils.encode_cell({r:0,c:c});
-        if (hrWs[addr]) hrWs[addr].s = sGrayHdr;
-      }
-    }
-    // Find header row (may not be row 0)
-    for (let i = 0; i < Math.min(xlsxRatesRaw.length, 5); i++) {
-      const row = xlsxRatesRaw[i];
-      if (row && row.some(v => String(v||'').toLowerCase().includes('name'))) {
-        for (let c = 0; c < row.length; c++) {
-          const addr = XLSX.utils.encode_cell({r:i,c:c});
-          if (hrWs[addr]) hrWs[addr].s = sGrayHdr;
-        }
-        break;
-      }
-    }
-    hrWs['!cols'] = [{wch:22},{wch:10},{wch:30},{wch:8}];
-  } else {
-    // Build from xlsxRates object
-    const hrData = [['Full Name', 'Pay Rate']];
-    Object.entries(xlsxRates).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, rate]) => {
-      hrData.push([name, rate]);
-    });
-    hrWs = XLSX.utils.aoa_to_sheet(hrData);
-    const hAddr = XLSX.utils.encode_cell({r:0,c:0});
-    const hAddr2 = XLSX.utils.encode_cell({r:0,c:1});
-    if (hrWs[hAddr]) hrWs[hAddr].s = sGrayHdr;
-    if (hrWs[hAddr2]) hrWs[hAddr2].s = sGrayHdr;
-    hrWs['!cols'] = [{wch:22},{wch:10}];
-  }
-
-  // ======== Assemble workbook in reference order ========
-  // Reference order: Summary, Data, New Crysp, Rate Calculation, Hourly Rates
-  // We already added New Crysp and Rate Calculation, so rebuild in correct order
-  const wbFinal = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wbFinal, sumWs, 'Summary');
-  XLSX.utils.book_append_sheet(wbFinal, dataWs, 'Data');
-  XLSX.utils.book_append_sheet(wbFinal, ws, 'New Crysp');
-  XLSX.utils.book_append_sheet(wbFinal, rcWs, 'Rate Calculation');
-  XLSX.utils.book_append_sheet(wbFinal, hrWs, 'Hourly Rates');
-
-  XLSX.writeFile(wbFinal, 'Crysp_House_Hours_Output.xlsx');
+  XLSX.writeFile(wb, 'Crysp_House_Hours_Output.xlsx');
 }
 
-// CSV export removed — XLSX only
+// ============================================================
+// EXPORT: CSV
+// ============================================================
+function exportCSV() {
+  const config = getConfig();
+  const included = employeeResults.filter(e => !e.excluded);
+
+  let csv = 'fullname,Regular hr,OT hr,Regular Rate,OT rate,Gross (Regular),Gross (OT),Total Gross Payment,Employer Tax rate,Tax Amount,WC Rate,2/3 exempt OT,WC Amount,Total Bill to Bravura\n';
+
+  included.forEach(e => {
+    csv += [
+      `"${e.name}"`, fmt(e.crispReg, 4), fmt(e.crispOT, 4),
+      fmt(e.rate), fmt(e.otRate), fmt(e.grossReg),
+      fmt(e.grossOT, 5), fmt(e.totalGross, 6),
+      fmt(e.perEmpTaxRate, 9), fmt(e.taxAmount, 6),
+      e.wcRate, fmt(e.twoThirdsExemptOT, 4),
+      fmt(e.wcAmount, 7), fmt(e.totalBill, 7),
+    ].join(',') + '\n';
+  });
+
+  const totalBill = included.reduce((s, e) => s + e.totalBill, 0);
+  const serviceAmt = totalBill * config.serviceCharge / 100;
+  csv += `\nTotal,,,,,,, ${fmt(included.reduce((s,e)=>s+e.totalGross,0), 6)},, ${fmt(included.reduce((s,e)=>s+e.taxAmount,0), 6)},,, ${fmt(included.reduce((s,e)=>s+e.wcAmount,0), 6)}, ${fmt(totalBill, 6)}\n`;
+  csv += `${config.serviceCharge}% Service Charge,,,,,,,,,,,,, ${fmt(serviceAmt, 7)}\n`;
+  csv += `Grand Total,,,,,,,,,,,,, ${fmt(totalBill + serviceAmt, 7)}\n`;
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'crysp_billing_calculation.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 </body>
 </html>
