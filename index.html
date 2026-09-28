@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crysp House Hours Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: #dee2e6;
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --accent: #7c3aed;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --radius: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111827; --card: #1f2937; --border: #374151;
+    --text: #f3f4f6; --text-muted: #9ca3af;
+    --primary-light: #1e3a5f;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111827; --card: #1f2937; --border: #374151;
+  --text: #f3f4f6; --text-muted: #9ca3af;
+  --primary-light: #1e3a5f;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.5; padding: 16px;
+}
+.container { max-width: 1500px; margin: 0 auto; }
+h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+h2 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 10px; color: var(--primary); }
+.subtitle { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 16px; }
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 768px) {
+  .grid-2, .grid-4 { grid-template-columns: 1fr; }
+}
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 24px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary); background: var(--primary-light);
+}
+.upload-zone input { display: none; }
+.upload-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+.upload-zone .label { font-weight: 600; }
+.upload-zone .hint { font-size: 0.8rem; color: var(--text-muted); }
+.upload-zone.loaded { border-color: var(--success); border-style: solid; }
+label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+input[type="number"], input[type="text"], select {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 0.9rem; background: var(--card); color: var(--text);
+}
+input[type="number"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border: none; border-radius: 6px;
+  font-size: 0.875rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--primary-light); }
+table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+th {
+  text-align: left; padding: 8px 10px; font-weight: 600;
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+  background: #e5e7eb; color: #1f2937;
+}
+td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+tr:hover td { background: var(--primary-light); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.text-success { color: var(--success); }
+.font-mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+.font-bold { font-weight: 700; }
+/* Highlighted cells matching the reference spreadsheet */
+.hl-gross { background: #fce4ec; color: #c62828; font-weight: 700; }
+.hl-tax { background: #fce4ec; color: #c62828; font-weight: 700; }
+.hl-wc { background: #e8f5e9; color: #2e7d32; font-weight: 700; }
+.hl-bill { background: #fff3e0; color: #e65100; font-weight: 700; }
+.hl-total-gross { background: #ffcc80; color: #bf360c; font-weight: 700; }
+.hl-total-tax { background: #ffcc80; color: #bf360c; font-weight: 700; }
+.hl-total-wc { background: #a5d6a7; color: #1b5e20; font-weight: 700; }
+.hl-total-bill { background: #ffb74d; color: #4e342e; font-weight: 700; }
+.hl-grand { background: #ffc107; color: #3e2723; font-weight: 800; font-size: 1rem; }
+.hl-service { font-weight: 600; }
+.summary-row td { font-weight: 700; border-top: 2px solid #bdbdbd; background: #f5f5f5; }
+.grand-row td { font-weight: 700; border-top: 2px solid #ffc107; }
+.note-red { font-size: 0.82rem; color: #c62828; font-weight: 600; padding: 6px 10px; }
+.section-title {
+  font-size: 0.9rem; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 8px;
+  padding-bottom: 4px; border-bottom: 2px solid var(--primary);
+  display: inline-block;
+}
+.note { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; font-style: italic; }
+.table-wrapper { overflow-x: auto; }
+.hidden { display: none !important; }
+.mb-16 { margin-bottom: 16px; }
+.mt-8 { margin-top: 8px; }
+.header-bar {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.editable-rate {
+  width: 80px; padding: 2px 6px; border: 1px solid transparent;
+  background: transparent; text-align: right; font-family: inherit;
+  font-size: inherit; color: inherit; border-radius: 4px;
+}
+.editable-rate:hover { border-color: var(--border); }
+.editable-rate:focus { border-color: var(--primary); background: var(--card); outline: none; }
+.status-bar {
+  display: flex; gap: 16px; align-items: center; padding: 10px 16px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 16px; font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.ready { background: var(--success); }
+.status-dot.waiting { background: var(--border); }
+.stat-card {
+  padding: 16px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--card);
+}
+.stat-card .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+.stat-card .stat-value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+.stat-card .stat-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.toggle {
+  position: relative; width: 36px; height: 20px;
+  background: var(--border); border-radius: 99px; cursor: pointer;
+  transition: background 0.2s; display: inline-block;
+}
+.toggle.on { background: var(--primary); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(16px); }
+.excluded td { opacity: 0.5; text-decoration: line-through; }
+.config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
+.ratio-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .ratio-tables { grid-template-columns: 1fr; } }
+.entity-tables { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 900px) { .entity-tables { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .entity-tables { grid-template-columns: 1fr; } }
+.entity-tables table { font-size: 0.82rem; }
+.entity-tables th, .entity-tables td { padding: 4px 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header-bar">
+    <div>
+      <h1>Crysp House Hours Calculator</h1>
+      <p class="subtitle">Upload timesheet CSV and weekly hours XLSX to generate billing — output matches Crysp House Hours format.</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-success hidden" id="exportBtn" onclick="exportXLSX()">&#x1F4BE; Export XLSX</button>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-item"><div class="status-dot waiting" id="csvDot"></div><span id="csvStatus">Timesheet CSV: waiting</span></div>
+    <div class="status-item"><div class="status-dot waiting" id="xlsxDot"></div><span id="xlsxStatus">Weekly Hours XLSX: waiting</span></div>
+  </div>
+
+  <!-- Upload Section -->
+  <div class="grid-2 mb-16">
+    <div class="upload-zone" id="csvZone" onclick="document.getElementById('csvInput').click()">
+      <input type="file" id="csvInput" accept=".csv" onchange="handleCSV(this)">
+      <div class="icon">&#x1F4C4;</div>
+      <div class="label" id="csvLabel">Upload Timesheet CSV</div>
+      <div class="hint">timesheet_report_*.csv (entity hours)</div>
+    </div>
+    <div class="upload-zone" id="xlsxZone" onclick="document.getElementById('xlsxInput').click()">
+      <input type="file" id="xlsxInput" accept=".xlsx,.xls" onchange="handleXLSX(this)">
+      <div class="icon">&#x1F4CA;</div>
+      <div class="label" id="xlsxLabel">Upload Weekly Hours XLSX</div>
+      <div class="hint">Week_*.xlsx (Overtime Calculation + Hourly Rates)</div>
+    </div>
+  </div>
+
+  <!-- Config Section -->
+  <div class="card mb-16" id="configSection">
+    <h2 style="margin-top:0">Configuration</h2>
+    <div class="config-grid">
+      <div>
+        <label>Base Employer Tax Rate (%)</label>
+        <input type="number" id="taxRate" value="7.65" step="0.001" onchange="recalculate()">
+      </div>
+      <div>
+        <label>Supervision WC Rate (e.g. Carlos)</label>
+        <input type="number" id="wcRateSupervision" value="0.004996" step="0.000001" onchange="recalculate()">
+      </div>
+      <div>
+        <label>Production WC Rate (others)</label>
+        <input type="number" id="wcRateProduction" value="0.041133" step="0.000001" onchange="recalculate()">
+      </div>
+      <div>
+        <label>Service Charge (%)</label>
+        <input type="number" id="serviceCharge" value="10" step="0.1" onchange="recalculate()">
+      </div>
+      <div>
+        <label>Supervision Employees (comma-separated)</label>
+        <input type="text" id="supervisionEmployees" value="Carlos Silva" onchange="recalculate()">
+      </div>
+      <div>
+        <label>Default Exclusions (comma-separated)</label>
+        <input type="text" id="defaultExclusions" value="Hazel Herrera, Elysia Castro, Paul Bates" onchange="recalculate()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results (hidden until data loaded) -->
+  <div id="results" class="hidden">
+    <!-- Stats Row -->
+    <div class="grid-4 mb-16" id="statsRow"></div>
+
+    <!-- Single consolidated output matching reference spreadsheet -->
+    <div class="card" id="outputCard">
+      <div id="fullOutput"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let timesheetRaw = [];
+let overtimeData = [];
+let overtimeDailyByEmp = {};
+let overtimeTotalsByEmp = {};
+let xlsxRates = {};
+let xlsxRatesRaw = []; // full Hourly Rates sheet rows for export
+let employeeResults = [];
+let employeeExclusions = {};
+let employeeWCRateOverrides = {};
+
+let csvLoaded = false, xlsxLoaded = false;
+
+// ============================================================
+// FILE UPLOAD HANDLERS
+// ============================================================
+function handleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    timesheetRaw = parseCSV(e.target.result);
+    csvLoaded = true;
+    document.getElementById('csvZone').classList.add('loaded');
+    document.getElementById('csvLabel').textContent = file.name;
+    document.getElementById('csvDot').classList.add('ready');
+    document.getElementById('csvDot').classList.remove('waiting');
+    document.getElementById('csvStatus').textContent = 'CSV: ' + timesheetRaw.length + ' rows';
+    tryProcess();
+  };
+  reader.readAsText(file);
+}
+
+function handleXLSX(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // Find "Overtime Calculation" sheet
+      const otSheetName = workbook.SheetNames.find(n =>
+        n.toLowerCase().includes('overtime') || n.toLowerCase().includes('overhour')
+      );
+      if (!otSheetName) {
+        alert('Could not find "Overtime Calculation" sheet.\nAvailable sheets: ' + workbook.SheetNames.join(', '));
+        return;
+      }
+
+      const ws = workbook.Sheets[otSheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      overtimeData = [];
+      overtimeDailyByEmp = {};
+      overtimeTotalsByEmp = {};
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row[0]) continue;
+        const name = String(row[0]).trim();
+        const dateRaw = row[1];
+        let dateStr = '';
+        if (dateRaw instanceof Date) {
+          dateStr = dateRaw.toISOString().substring(0, 10);
+        } else if (typeof dateRaw === 'number') {
+          const d = XLSX.SSF.parse_date_code(dateRaw);
+          dateStr = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+        } else if (dateRaw) {
+          dateStr = String(dateRaw).substring(0, 10);
+        }
+
+        const total = parseFloat(row[2]) || 0;
+        const reg = parseFloat(row[3]) || 0;
+        const ot = parseFloat(row[4]) || 0;
+        const dbl = parseFloat(row[5]) || 0;
+
+        const entry = { name, date: dateStr, total, reg, ot, double: dbl };
+        overtimeData.push(entry);
+
+        if (!overtimeDailyByEmp[name]) overtimeDailyByEmp[name] = [];
+        overtimeDailyByEmp[name].push(entry);
+
+        if (!overtimeTotalsByEmp[name]) overtimeTotalsByEmp[name] = { total: 0, reg: 0, ot: 0, double: 0 };
+        overtimeTotalsByEmp[name].total += total;
+        overtimeTotalsByEmp[name].reg += reg;
+        overtimeTotalsByEmp[name].ot += ot;
+        overtimeTotalsByEmp[name].double += dbl;
+      }
+
+      Object.keys(overtimeTotalsByEmp).forEach(name => {
+        const t = overtimeTotalsByEmp[name];
+        t.total = round(t.total, 10);
+        t.reg = round(t.reg, 10);
+        t.ot = round(t.ot, 10);
+        t.double = round(t.double, 10);
+      });
+
+      // Read "Hourly Rates" sheet
+      xlsxRates = {};
+      xlsxRatesRaw = [];
+      const rateSheetName = workbook.SheetNames.find(n =>
+        n.toLowerCase().includes('hourly rate')
+      );
+      if (rateSheetName) {
+        const rateWs = workbook.Sheets[rateSheetName];
+        const rateRows = XLSX.utils.sheet_to_json(rateWs, { header: 1 });
+        xlsxRatesRaw = rateRows; // store raw for export
+        let nameCol = -1, rateCol = -1;
+        for (let i = 0; i < Math.min(rateRows.length, 5); i++) {
+          const row = rateRows[i];
+          if (!row) continue;
+          for (let j = 0; j < row.length; j++) {
+            const val = String(row[j] || '').toLowerCase().trim();
+            if (val.includes('full name') || val.includes('name')) nameCol = j;
+            if (val.includes('pay rate') || val.includes('rate')) rateCol = j;
+          }
+          if (nameCol >= 0 && rateCol >= 0) {
+            for (let k = i + 1; k < rateRows.length; k++) {
+              const dr = rateRows[k];
+              if (!dr || !dr[nameCol]) continue;
+              const empName = String(dr[nameCol]).trim();
+              const empRate = parseFloat(dr[rateCol]);
+              if (empName && !isNaN(empRate) && empRate > 0) {
+                xlsxRates[empName] = empRate;
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      // Fallback: read from Data sheet
+      if (Object.keys(xlsxRates).length === 0) {
+        const dataSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'data');
+        if (dataSheetName) {
+          const dataWs = workbook.Sheets[dataSheetName];
+          const dataRows = XLSX.utils.sheet_to_json(dataWs, { header: 1 });
+          if (dataRows.length > 0) {
+            const hdr = dataRows[0];
+            let fnCol = -1, prCol = -1;
+            for (let j = 0; j < hdr.length; j++) {
+              const v = String(hdr[j] || '').toLowerCase().trim();
+              if (v === 'fullname' || v === 'full name') fnCol = j;
+              if (v === 'payrate' || v === 'pay rate') prCol = j;
+            }
+            if (fnCol >= 0 && prCol >= 0) {
+              for (let k = 1; k < dataRows.length; k++) {
+                const dr = dataRows[k];
+                if (!dr || !dr[fnCol]) continue;
+                const empName = String(dr[fnCol]).trim();
+                const empRate = parseFloat(dr[prCol]);
+                if (empName && !isNaN(empRate) && empRate > 0 && !xlsxRates[empName]) {
+                  xlsxRates[empName] = empRate;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const rateCount = Object.keys(xlsxRates).length;
+      xlsxLoaded = true;
+      document.getElementById('xlsxZone').classList.add('loaded');
+      document.getElementById('xlsxLabel').textContent = file.name;
+      document.getElementById('xlsxDot').classList.add('ready');
+      document.getElementById('xlsxDot').classList.remove('waiting');
+      document.getElementById('xlsxStatus').textContent = 'XLSX: ' + Object.keys(overtimeTotalsByEmp).length + ' employees, ' + rateCount + ' rates';
+      tryProcess();
+    } catch(err) {
+      alert('Error reading XLSX: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Drag-and-drop
+['csvZone','xlsxZone'].forEach(id => {
+  const zone = document.getElementById(id);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const inputMap = { csvZone: 'csvInput', xlsxZone: 'xlsxInput' };
+    const inputId = inputMap[id];
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById(inputId).files = dt.files;
+    if (id === 'csvZone') handleCSV(document.getElementById(inputId));
+    else handleXLSX(document.getElementById(inputId));
+  });
+});
+
+// ============================================================
+// CSV PARSER
+// ============================================================
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.length < headers.length) continue;
+    const row = {};
+    headers.forEach((h, idx) => row[h.trim()] = vals[idx]);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i+1] === '"') { current += '"'; i++; }
+        else inQuotes = false;
+      } else current += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { result.push(current.trim()); current = ''; }
+      else current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// ============================================================
+// PROCESSING LOGIC
+// ============================================================
+function tryProcess() {
+  if (csvLoaded && xlsxLoaded) processData();
+}
+
+function recalculate() {
+  if (employeeResults.length > 0) processData();
+}
+
+function getConfig() {
+  return {
+    taxRate: parseFloat(document.getElementById('taxRate').value) || 7.65,
+    wcRateSupervision: parseFloat(document.getElementById('wcRateSupervision').value) || 0.004996,
+    wcRateProduction: parseFloat(document.getElementById('wcRateProduction').value) || 0.041133,
+    serviceCharge: parseFloat(document.getElementById('serviceCharge').value) || 10,
+    supervisionEmployees: document.getElementById('supervisionEmployees').value.split(',').map(s => s.trim()).filter(Boolean),
+    defaultExclusions: document.getElementById('defaultExclusions').value.split(',').map(s => s.trim()).filter(Boolean),
+  };
+}
+
+function isBreak(jc) { return jc === 'Rest break' || jc === 'Lunch break'; }
+function mapEntity(jc) {
+  if (jc === 'Crysp') return 'Crysp';
+  if (jc === 'Bluntd Cones') return 'Clubhouse';
+  if (jc === 'Clubhouse Drops') return 'BluntD';
+  if (jc === 'RSC') return 'RSC';
+  return 'Other';
+}
+function round(val, dp) { return Math.round(val * Math.pow(10, dp)) / Math.pow(10, dp); }
+function fmt(val, dp=2) { return val.toFixed(dp); }
+function fmtCurrency(val) { return '$' + val.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+function processData() {
+  const config = getConfig();
+
+  // Parse CSV rows
+  const rows = timesheetRaw.map(r => ({
+    ...r,
+    fullname: (r.fname || '') + ' ' + (r.lname || ''),
+    hours: parseFloat(r.hours) || 0,
+    jobcode1: r.jobcode_1 || '',
+  }));
+
+  // Identify Crysp employees
+  const crispEmployees = new Set();
+  rows.forEach(r => { if (r.jobcode1 === 'Crysp') crispEmployees.add(r.fullname); });
+
+  // Initialize exclusions from defaults on first run
+  if (Object.keys(employeeExclusions).length === 0) {
+    config.defaultExclusions.forEach(name => { employeeExclusions[name] = true; });
+  }
+
+  employeeResults = [];
+
+  crispEmployees.forEach(empName => {
+    const empRows = rows.filter(r => r.fullname === empName);
+
+    // Entity hours from CSV (excluding breaks)
+    const entityHours = { Clubhouse: 0, BluntD: 0, Crysp: 0, Other: 0 };
+    let totalWorkHours = 0;
+
+    empRows.forEach(r => {
+      if (isBreak(r.jobcode1)) return;
+      const entity = mapEntity(r.jobcode1);
+      entityHours[entity] = (entityHours[entity] || 0) + r.hours;
+      totalWorkHours += r.hours;
+    });
+
+    totalWorkHours = round(totalWorkHours, 10);
+    const crispHours = round(entityHours.Crysp || 0, 10);
+    const clubhouseHours = round(entityHours.Clubhouse || 0, 10);
+    const bluntdHours = round(entityHours.BluntD || 0, 10);
+
+    // Entity ratios (rounded to 2 decimal places)
+    const crispRatio = totalWorkHours > 0 ? round(crispHours / totalWorkHours, 2) : 0;
+    const clubhouseRatio = totalWorkHours > 0 ? round(clubhouseHours / totalWorkHours, 2) : 0;
+    const bluntdRatio = totalWorkHours > 0 ? round(bluntdHours / totalWorkHours, 2) : 0;
+
+    // XLSX Overtime data
+    const xlsxTotals = overtimeTotalsByEmp[empName] || { total: 0, reg: 0, ot: 0, double: 0 };
+    const totalReg = xlsxTotals.reg;
+    const totalOT = xlsxTotals.ot;
+
+    // Crysp-specific hours = XLSX hours × Crysp ratio
+    const crispReg = totalReg * crispRatio;
+    const crispOT = totalOT * crispRatio;
+
+    // Hourly rate from XLSX
+    const rate = xlsxRates[empName] || 0;
+    const otRate = rate * 1.5;
+
+    // Gross
+    const grossReg = crispReg * rate;
+    const grossOT = crispOT * otRate;
+    const totalGross = grossReg + grossOT;
+
+    // Per-employee tax rate: computed from total payroll
+    // Total gross (all entities) = totalReg × rate + totalOT × otRate
+    const totalGrossAll = totalReg * rate + totalOT * otRate;
+    const employerTaxAll = round(totalGrossAll * config.taxRate / 100, 2);
+    const perEmpTaxRate = totalGrossAll > 0 ? (employerTaxAll / totalGrossAll * 100) : config.taxRate;
+
+    // Tax on Crysp portion
+    const taxAmount = totalGross * perEmpTaxRate / 100;
+
+    // WC rate: supervision vs production
+    const isSupervision = config.supervisionEmployees.some(s =>
+      empName.toLowerCase().includes(s.toLowerCase())
+    );
+    const defaultWCRate = isSupervision ? config.wcRateSupervision : config.wcRateProduction;
+    const wcRate = employeeWCRateOverrides[empName] !== undefined ? employeeWCRateOverrides[empName] : defaultWCRate;
+
+    // WC Amount = (Gross Reg + 2/3 × Gross OT) × WC Rate
+    const twoThirdsExemptOT = (2/3) * grossOT;
+    const wcBase = grossReg + twoThirdsExemptOT;
+    const wcAmount = wcBase * wcRate;
+
+    // Total bill
+    const totalBill = totalGross + taxAmount + wcAmount;
+
+    employeeResults.push({
+      name: empName,
+      crispHours, clubhouseHours, bluntdHours, totalWorkHours,
+      crispRatio, clubhouseRatio, bluntdRatio,
+      totalReg, totalOT,
+      crispReg, crispOT,
+      rate, otRate,
+      grossReg, grossOT, totalGross,
+      totalGrossAll, employerTaxAll, perEmpTaxRate,
+      taxAmount,
+      wcRate, twoThirdsExemptOT, wcAmount,
+      totalBill,
+      excluded: employeeExclusions[empName] || false,
+    });
+  });
+
+  employeeResults.sort((a, b) => a.name.localeCompare(b.name));
+
+  renderAll();
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function renderAll() {
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('exportBtn').classList.remove('hidden');
+
+  const config = getConfig();
+  const included = employeeResults.filter(e => !e.excluded);
+  const excludedNames = employeeResults.filter(e => e.excluded).map(e => e.name);
+
+  const totalGross = included.reduce((s, e) => s + e.totalGross, 0);
+  const totalTax = included.reduce((s, e) => s + e.taxAmount, 0);
+  const totalWC = included.reduce((s, e) => s + e.wcAmount, 0);
+  const totalBill = included.reduce((s, e) => s + e.totalBill, 0);
+  const serviceAmt = totalBill * config.serviceCharge / 100;
+  const grandTotal = totalBill + serviceAmt;
+
+  // Stats cards
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Employees</div>
+      <div class="stat-value">${included.length}</div>
+      <div class="stat-sub">${employeeResults.length - included.length} excluded</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Gross</div>
+      <div class="stat-value" style="color:#c62828">${fmtCurrency(totalGross)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Bill to Bravura</div>
+      <div class="stat-value" style="color:#e65100">${fmtCurrency(totalBill)}</div>
+    </div>
+    <div class="stat-card" style="border-color:#ffc107; background:linear-gradient(135deg,#fff8e1,#fff3e0)">
+      <div class="stat-label">Grand Total</div>
+      <div class="stat-value" style="color:#e65100">${fmtCurrency(grandTotal)}</div>
+      <div class="stat-sub">Incl. ${config.serviceCharge}% service charge</div>
+    </div>
+  `;
+
+  // ===== Build single unified output =====
+  let html = '';
+
+  // --- Section 1: Ratio per entity ---
+  html += `<div class="section-title">Ratio per entity</div>`;
+  html += `<div class="ratio-tables">`;
+  // Left: ratios
+  html += `<div class="table-wrapper"><table>
+    <thead><tr><th>Name</th><th class="text-right">Clubhouse</th><th class="text-right">BluntD</th><th class="text-right">Crysp</th></tr></thead>
+    <tbody>`;
+  included.forEach(e => {
+    const fn = e.name.split(' ')[0];
+    html += `<tr><td>${fn}</td>
+      <td class="text-right font-mono">${fmt(e.clubhouseRatio)}</td>
+      <td class="text-right font-mono">${fmt(e.bluntdRatio)}</td>
+      <td class="text-right font-mono">${fmt(e.crispRatio)}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  // Right: reg/OT
+  html += `<div class="table-wrapper"><table>
+    <thead><tr><th>Name</th><th class="text-right">Regular hour</th><th class="text-right">OT hour</th></tr></thead>
+    <tbody>`;
+  included.forEach(e => {
+    const fn = e.name.split(' ')[0];
+    html += `<tr><td>${fn}</td>
+      <td class="text-right font-mono">${fmt(e.totalReg)}</td>
+      <td class="text-right font-mono">${fmt(e.totalOT)}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  // --- Section 2: Entity Hours Summary ---
+  html += `<div class="section-title" style="margin-top:28px">Entity Hours Summary</div>`;
+  html += `<div class="entity-tables">`;
+  const entitySections = [
+    { title: 'Sum of Clubhouse hour', key: 'clubhouseHours' },
+    { title: 'Sum of BluntD hour', key: 'bluntdHours' },
+    { title: 'Sum of Crysp hour', key: 'crispHours' },
+    { title: 'Sum of All Entity hours', key: 'totalWorkHours' },
+  ];
+  entitySections.forEach(sec => {
+    html += `<div><table>
+      <thead><tr><th>Name</th><th class="text-right">${sec.title}</th></tr></thead><tbody>`;
+    included.forEach(e => {
+      const fn = e.name.split(' ')[0];
+      html += `<tr><td>${fn}</td><td class="text-right font-mono">${fmt(e[sec.key])}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+  html += `</div>`;
+
+  // --- Section 3: Billing Table ---
+  html += `<div class="section-title" style="margin-top:28px">Billing Calculation</div>`;
+  html += `<div class="table-wrapper"><table>
+    <thead><tr>
+      <th style="width:30px">Incl</th>
+      <th>fullname</th>
+      <th class="text-right">Regular hr</th>
+      <th class="text-right">OT hr</th>
+      <th class="text-right">Regular Rate</th>
+      <th class="text-right">OT rate</th>
+      <th class="text-right">Gross (Regular)</th>
+      <th class="text-right">Gross (OT)</th>
+      <th class="text-right" style="background:#fce4ec;color:#c62828">Total Gross Payment</th>
+      <th class="text-right">Employer Tax rate</th>
+      <th class="text-right" style="background:#fce4ec;color:#c62828">Tax Amount</th>
+      <th class="text-right">WC Rate</th>
+      <th class="text-right">2/3 exempt OT</th>
+      <th class="text-right" style="background:#e8f5e9;color:#2e7d32">WC Amount</th>
+      <th class="text-right" style="background:#fff3e0;color:#e65100">Total Bill to Bravura</th>
+    </tr></thead><tbody>`;
+
+  employeeResults.forEach(e => {
+    html += `<tr class="${e.excluded ? 'excluded' : ''}">
+      <td class="text-center">
+        <div class="toggle ${e.excluded ? '' : 'on'}" onclick="toggleExclusion('${escapeAttr(e.name)}', this)" title="${e.excluded ? 'Click to include' : 'Click to exclude'}"></div>
+      </td>
+      <td style="font-weight:600">${e.name}</td>
+      <td class="text-right font-mono">${fmt(e.crispReg, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.crispOT, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.rate, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.otRate, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.grossReg, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.grossOT, 2)}</td>
+      <td class="text-right font-mono hl-gross">${fmt(e.totalGross, 2)}</td>
+      <td class="text-right font-mono">${fmt(e.perEmpTaxRate, 2)}</td>
+      <td class="text-right font-mono hl-tax">${fmt(e.taxAmount, 2)}</td>
+      <td class="text-right">
+        <input class="editable-rate font-mono" type="number" step="0.000001"
+          value="${e.wcRate}" onchange="updateWCRate('${escapeAttr(e.name)}', this.value)">
+      </td>
+      <td class="text-right font-mono">${fmt(e.twoThirdsExemptOT, 2)}</td>
+      <td class="text-right font-mono hl-wc">${fmt(e.wcAmount, 2)}</td>
+      <td class="text-right font-mono hl-bill">${fmt(e.totalBill, 2)}</td>
+    </tr>`;
+  });
+
+  // --- Section 4: Total Row ---
+  html += `<tr class="summary-row">
+    <td></td>
+    <td style="font-weight:700">Total</td>
+    <td></td><td></td><td></td><td></td><td></td><td></td>
+    <td class="text-right font-mono hl-total-gross">${fmt(totalGross, 2)}</td>
+    <td></td>
+    <td class="text-right font-mono hl-total-tax">${fmt(totalTax, 2)}</td>
+    <td></td><td></td>
+    <td class="text-right font-mono hl-total-wc">${fmt(totalWC, 2)}</td>
+    <td class="text-right font-mono hl-total-bill">${fmt(totalBill, 2)}</td>
+  </tr>`;
+
+  // Service charge row
+  html += `<tr>
+    <td colspan="12"></td>
+    <td class="text-right font-mono hl-service">${config.serviceCharge}% service charge</td>
+    <td></td>
+    <td class="text-right font-mono hl-service">${fmt(serviceAmt, 2)}</td>
+  </tr>`;
+
+  // --- Section 5: Exclusion notes + Grand Total ---
+  // Exclusion notes in red
+  const mainExcluded = excludedNames.filter(n => n !== 'Paul Bates');
+  const paulExcluded = excludedNames.filter(n => n === 'Paul Bates');
+  if (mainExcluded.length > 0) {
+    html += `<tr><td colspan="14" class="note-red">** Excluded total hours of ${mainExcluded.join(' & ')}</td><td></td></tr>`;
+  }
+  if (paulExcluded.length > 0) {
+    html += `<tr><td colspan="14" class="note-red">** Excluded total hours of ${paulExcluded.join(', ')}</td><td></td></tr>`;
+  }
+
+  // Grand Total
+  html += `<tr class="grand-row">
+    <td colspan="14"></td>
+    <td class="text-right font-mono hl-grand">${fmtCurrency(grandTotal)}</td>
+  </tr>`;
+
+  html += `</tbody></table></div>`;
+
+  document.getElementById('fullOutput').innerHTML = html;
+}
+
+function escapeAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+function toggleExclusion(name, el) {
+  employeeExclusions[name] = !employeeExclusions[name];
+  processData();
+}
+
+function updateWCRate(name, value) {
+  const val = parseFloat(value);
+  if (!isNaN(val)) {
+    employeeWCRateOverrides[name] = val;
+    processData();
+  }
+}
+
+// ============================================================
+// EXPORT: XLSX (matching reference format)
+// ============================================================
+function exportXLSX() {
+  const config = getConfig();
+  const included = employeeResults.filter(e => !e.excluded);
+  const wb = XLSX.utils.book_new();
+
+  // ---- Style definitions matching reference spreadsheet ----
+  const sGrayHdr = { fill:{fgColor:{rgb:"E0E0E0"}}, font:{bold:true, sz:10}, alignment:{horizontal:"center"}, border:{bottom:{style:"thin",color:{rgb:"999999"}}} };
+  const sBold = { font:{bold:true, sz:10} };
+  const sBoldName = { font:{bold:true, sz:11} };
+  const sNum2 = { numFmt:"0.00" };
+  const sNum4 = { numFmt:"0.0000" };
+  const sNum6 = { numFmt:"0.000000" };
+  // Pink = Total Gross Payment, Tax Amount
+  const sPink = { fill:{fgColor:{rgb:"FCE4EC"}}, font:{bold:true, color:{rgb:"C62828"}, sz:10}, numFmt:"0.00" };
+  const sPinkHdr = { fill:{fgColor:{rgb:"FCE4EC"}}, font:{bold:true, color:{rgb:"C62828"}, sz:10}, alignment:{horizontal:"center"}, border:{bottom:{style:"thin",color:{rgb:"999999"}}} };
+  // Green = WC Amount
+  const sGreen = { fill:{fgColor:{rgb:"E8F5E9"}}, font:{bold:true, color:{rgb:"2E7D32"}, sz:10}, numFmt:"0.00" };
+  const sGreenHdr = { fill:{fgColor:{rgb:"E8F5E9"}}, font:{bold:true, color:{rgb:"2E7D32"}, sz:10}, alignment:{horizontal:"center"}, border:{bottom:{style:"thin",color:{rgb:"999999"}}} };
+  // Orange = Total Bill to Bravura
+  const sOrange = { fill:{fgColor:{rgb:"FFF3E0"}}, font:{bold:true, color:{rgb:"E65100"}, sz:10}, numFmt:"0.00" };
+  const sOrangeHdr = { fill:{fgColor:{rgb:"FFF3E0"}}, font:{bold:true, color:{rgb:"E65100"}, sz:10}, alignment:{horizontal:"center"}, border:{bottom:{style:"thin",color:{rgb:"999999"}}} };
+  // Total row colors (deeper)
+  const sTotalPink = { fill:{fgColor:{rgb:"FFCC80"}}, font:{bold:true, color:{rgb:"BF360C"}, sz:10}, numFmt:"0.00" };
+  const sTotalGreen = { fill:{fgColor:{rgb:"A5D6A7"}}, font:{bold:true, color:{rgb:"1B5E20"}, sz:10}, numFmt:"0.00" };
+  const sTotalOrange = { fill:{fgColor:{rgb:"FFB74D"}}, font:{bold:true, color:{rgb:"4E342E"}, sz:10}, numFmt:"0.00" };
+  // Grand total gold
+  const sGrand = { fill:{fgColor:{rgb:"FFC107"}}, font:{bold:true, color:{rgb:"3E2723"}, sz:12}, numFmt:"$#,##0.00" };
+  // Red exclusion note
+  const sRedNote = { font:{bold:true, color:{rgb:"C62828"}, sz:9} };
+  // Service charge
+  const sServiceLabel = { font:{bold:true, sz:10}, alignment:{horizontal:"right"} };
+  const sServiceAmt = { font:{bold:true, sz:10}, numFmt:"0.00" };
+  // Section title
+  const sSectionTitle = { font:{bold:true, color:{rgb:"2563EB"}, sz:11} };
+  // Total row bold label
+  const sTotalLabel = { font:{bold:true, sz:11}, fill:{fgColor:{rgb:"F5F5F5"}}, border:{top:{style:"medium",color:{rgb:"BDBDBD"}}} };
+
+  // Build "New Crysp" sheet data
+  const sheetData = [];
+  let r = 0; // track current row
+  const cellStyles = {}; // key: "A1" => style object
+  function setStyle(row, col, style) {
+    const addr = XLSX.utils.encode_cell({r: row, c: col});
+    cellStyles[addr] = style;
+  }
+
+  // --- Section 1: "Ratio per entity" title ---
+  sheetData.push(['','','','','Ratio per entity','','','','','','','','','']);
+  setStyle(r, 4, sSectionTitle);
+  r++;
+
+  // Sub-headers
+  sheetData.push(['','','','','Name','Clubhouse','BluntD','Crysp','','Name','Regular hour','OT hour','','']);
+  for (let c = 4; c <= 7; c++) setStyle(r, c, sGrayHdr);
+  for (let c = 9; c <= 11; c++) setStyle(r, c, sGrayHdr);
+  r++;
+
+  // Ratio data rows
+  included.forEach(e => {
+    const firstName = e.name.split(' ')[0];
+    sheetData.push(['','','','', firstName, e.clubhouseRatio, e.bluntdRatio, e.crispRatio, '', firstName, e.totalReg, e.totalOT, '', '']);
+    setStyle(r, 4, sBold);
+    setStyle(r, 5, sNum2); setStyle(r, 6, sNum2); setStyle(r, 7, sNum2);
+    setStyle(r, 9, sBold);
+    setStyle(r, 10, sNum2); setStyle(r, 11, sNum2);
+    r++;
+  });
+
+  // Blank rows
+  sheetData.push(['']); r++;
+  sheetData.push(['']); r++;
+
+  // --- Section 2: Entity Hours Summary ---
+  sheetData.push(['Name','Sum of Clubhouse hour','','Name','Sum of BluntD hour','','Name','Sum of Crysp hour','','Name','Sum of All Entity hours','','','']);
+  setStyle(r, 0, sGrayHdr); setStyle(r, 1, sGrayHdr);
+  setStyle(r, 3, sGrayHdr); setStyle(r, 4, sGrayHdr);
+  setStyle(r, 6, sGrayHdr); setStyle(r, 7, sGrayHdr);
+  setStyle(r, 9, sGrayHdr); setStyle(r, 10, sGrayHdr);
+  r++;
+
+  // Entity hours data
+  included.forEach(e => {
+    const firstName = e.name.split(' ')[0];
+    sheetData.push([firstName, e.clubhouseHours, '', firstName, e.bluntdHours, '', firstName, e.crispHours, '', firstName, e.totalWorkHours, '', '', '']);
+    setStyle(r, 0, sBold); setStyle(r, 1, sNum2);
+    setStyle(r, 3, sBold); setStyle(r, 4, sNum2);
+    setStyle(r, 6, sBold); setStyle(r, 7, sNum2);
+    setStyle(r, 9, sBold); setStyle(r, 10, sNum2);
+    r++;
+  });
+
+  sheetData.push(['']); r++;
+
+  // --- Section 3: Billing headers ---
+  const billingHdrRow = r;
+  sheetData.push(['fullname','Regular hr','OT hr','Regular Rate','OT rate','Gross (Regular)','Gross (OT)','Total Gross Payment','Employer Tax rate','Tax Amount','WC Rate','2/3 exempt OT','WC Amount','Total Bill to Bravura']);
+  for (let c = 0; c <= 13; c++) {
+    if (c === 7) setStyle(r, c, sPinkHdr);       // Total Gross Payment
+    else if (c === 9) setStyle(r, c, sPinkHdr);   // Tax Amount
+    else if (c === 12) setStyle(r, c, sGreenHdr);  // WC Amount
+    else if (c === 13) setStyle(r, c, sOrangeHdr); // Total Bill to Bravura
+    else setStyle(r, c, sGrayHdr);
+  }
+  r++;
+
+  // Billing data rows
+  included.forEach(e => {
+    sheetData.push([e.name, e.crispReg, e.crispOT, e.rate, e.otRate, e.grossReg, e.grossOT, e.totalGross, e.perEmpTaxRate, e.taxAmount, e.wcRate, e.twoThirdsExemptOT, e.wcAmount, e.totalBill]);
+    setStyle(r, 0, sBoldName);
+    setStyle(r, 1, sNum2); setStyle(r, 2, sNum2);
+    setStyle(r, 3, sNum2); setStyle(r, 4, sNum2);
+    setStyle(r, 5, sNum2); setStyle(r, 6, sNum2);
+    setStyle(r, 7, sPink);   // Total Gross Payment
+    setStyle(r, 8, sNum2);
+    setStyle(r, 9, sPink);   // Tax Amount
+    setStyle(r, 10, sNum6);
+    setStyle(r, 11, sNum2);
+    setStyle(r, 12, sGreen); // WC Amount
+    setStyle(r, 13, sOrange); // Total Bill to Bravura
+    r++;
+  });
+
+  // --- Section 4: Total row ---
+  const totalGross = included.reduce((s, e) => s + e.totalGross, 0);
+  const totalTax = included.reduce((s, e) => s + e.taxAmount, 0);
+  const totalWC = included.reduce((s, e) => s + e.wcAmount, 0);
+  const totalBill = included.reduce((s, e) => s + e.totalBill, 0);
+  const serviceAmt = totalBill * config.serviceCharge / 100;
+  const grandTotal = totalBill + serviceAmt;
+
+  sheetData.push(['Total','','','','','','', totalGross, '', totalTax, '', '', totalWC, totalBill]);
+  setStyle(r, 0, sTotalLabel);
+  setStyle(r, 7, sTotalPink);  // Total Gross
+  setStyle(r, 9, sTotalPink);  // Total Tax
+  setStyle(r, 12, sTotalGreen); // Total WC
+  setStyle(r, 13, sTotalOrange); // Total Bill
+  r++;
+
+  // Service charge row
+  sheetData.push(['','','','','','','','','','','', config.serviceCharge + '% service charge', '', serviceAmt]);
+  setStyle(r, 11, sServiceLabel);
+  setStyle(r, 13, sServiceAmt);
+  r++;
+
+  // --- Section 5: Exclusion notes + Grand Total ---
+  const excludedNames = employeeResults.filter(e => e.excluded).map(e => e.name);
+  const mainExcluded = excludedNames.filter(n => n !== 'Paul Bates');
+  const paulExcluded = excludedNames.filter(n => n === 'Paul Bates');
+
+  if (mainExcluded.length > 0) {
+    sheetData.push(['** Excluded total hours of ' + mainExcluded.join(' & '),'','','','','','','','','','','','', grandTotal]);
+    setStyle(r, 0, sRedNote);
+    setStyle(r, 13, sGrand);
+    r++;
+  }
+  if (paulExcluded.length > 0) {
+    sheetData.push(['** Excluded total hours of ' + paulExcluded.join(', '),'','','','','','','','','','','','', mainExcluded.length === 0 ? grandTotal : '']);
+    setStyle(r, 0, sRedNote);
+    if (mainExcluded.length === 0) setStyle(r, 13, sGrand);
+    r++;
+  }
+  if (excludedNames.length === 0) {
+    sheetData.push(['','','','','','','','','','','','','', grandTotal]);
+    setStyle(r, 13, sGrand);
+    r++;
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+  // Apply all stored styles to cells
+  Object.entries(cellStyles).forEach(([addr, style]) => {
+    if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+    ws[addr].s = style;
+  });
+
+  // Set column widths
+  ws['!cols'] = [
+    {wch:18},{wch:12},{wch:10},{wch:12},{wch:10},{wch:14},{wch:12},
+    {wch:20},{wch:16},{wch:14},{wch:12},{wch:14},{wch:14},{wch:22}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'New Crysp');
+
+  // ======== Rate Calculation sheet ========
+  const rcData = [];
+  rcData.push(['','','']);
+  // Derive date range from CSV data if possible
+  let dateRange = '';
+  if (timesheetRaw.length > 0) {
+    const dates = timesheetRaw.map(r => r.local_date || '').filter(Boolean).sort();
+    if (dates.length > 0) {
+      const first = dates[0], last = dates[dates.length - 1];
+      // Format as MM/DD/YYYY
+      const fmtDate = d => { const p = d.split('-'); return p.length === 3 ? p[1]+'/'+p[2]+'/'+p[0] : d; };
+      dateRange = fmtDate(first) + '-' + fmtDate(last);
+    }
+  }
+  if (!dateRange) dateRange = '08/24/2026-08/30/2026';
+  rcData.push(['','', dateRange]);
+  rcData.push(['','','']);
+  included.forEach(e => {
+    rcData.push([e.name, 'Gross Pay', e.totalGrossAll]);
+    rcData.push(['', 'Employer tax', e.employerTaxAll]);
+    rcData.push(['', 'Tax Rate', e.perEmpTaxRate]);
+  });
+  const rcWs = XLSX.utils.aoa_to_sheet(rcData);
+  // Style Rate Calculation sheet
+  if (rcWs['C2']) rcWs['C2'].s = { font:{bold:true, sz:11} };
+  let rcR = 3;
+  included.forEach((e, i) => {
+    const base = rcR + i*3;
+    const a1 = XLSX.utils.encode_cell({r:base,c:0});
+    const b1 = XLSX.utils.encode_cell({r:base,c:1});
+    const c1 = XLSX.utils.encode_cell({r:base,c:2});
+    const b2 = XLSX.utils.encode_cell({r:base+1,c:1});
+    const c2 = XLSX.utils.encode_cell({r:base+1,c:2});
+    const b3 = XLSX.utils.encode_cell({r:base+2,c:1});
+    const c3 = XLSX.utils.encode_cell({r:base+2,c:2});
+    [a1].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sBoldName; });
+    [b1,b2,b3].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sBold; });
+    [c1,c2].forEach(addr => { if(rcWs[addr]) rcWs[addr].s = sNum2; });
+    if(rcWs[c3]) rcWs[c3].s = { numFmt:"0.000000000", font:{sz:10} };
+  });
+  rcWs['!cols'] = [{wch:18},{wch:14},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, rcWs, 'Rate Calculation');
+
+  // ======== Summary sheet (placeholder like reference) ========
+  const sumData = [[''], [null, 'RSC/OF by Job']];
+  const sumWs = XLSX.utils.aoa_to_sheet(sumData);
+  if (sumWs['B2']) sumWs['B2'].s = { font:{bold:true, sz:12} };
+  sumWs['!cols'] = [{wch:12},{wch:20}];
+
+  // ======== Data sheet (CSV raw data with payrate & total pay) ========
+  const dataHeaders = ['fullname','fname','lname','number','group','local_date','local_day',
+    'local_start_time','local_end_time','tz','hours','jobcode_1','jobcode_2','jobcode_3',
+    'location','payrate','total pay'];
+  const dataRows = [dataHeaders];
+  timesheetRaw.forEach(r => {
+    const fullname = (r.fname || '') + ' ' + (r.lname || '');
+    const hours = parseFloat(r.hours) || 0;
+    const payrate = xlsxRates[fullname] || parseFloat(r.payrate) || 0;
+    const totalPay = hours * payrate;
+    dataRows.push([
+      fullname, r.fname||'', r.lname||'', r.number||0, r.group||'-',
+      r.local_date||'', r.local_day||'',
+      r.local_start_time||'', r.local_end_time||'',
+      r.tz||'', hours, r.jobcode_1||'', r.jobcode_2||'', r.jobcode_3||'',
+      r.location||'', payrate, totalPay
+    ]);
+  });
+  const dataWs = XLSX.utils.aoa_to_sheet(dataRows);
+  // Style Data headers
+  for (let c = 0; c < dataHeaders.length; c++) {
+    const addr = XLSX.utils.encode_cell({r:0,c:c});
+    if (dataWs[addr]) dataWs[addr].s = sGrayHdr;
+  }
+  dataWs['!cols'] = [
+    {wch:18},{wch:10},{wch:12},{wch:8},{wch:5},{wch:12},{wch:6},
+    {wch:16},{wch:16},{wch:5},{wch:8},{wch:14},{wch:12},{wch:10},
+    {wch:20},{wch:10},{wch:10}
+  ];
+
+  // ======== Hourly Rates sheet (from XLSX input) ========
+  let hrWs;
+  if (xlsxRatesRaw.length > 0) {
+    hrWs = XLSX.utils.aoa_to_sheet(xlsxRatesRaw);
+    // Style header row
+    if (xlsxRatesRaw[0]) {
+      for (let c = 0; c < xlsxRatesRaw[0].length; c++) {
+        const addr = XLSX.utils.encode_cell({r:0,c:c});
+        if (hrWs[addr]) hrWs[addr].s = sGrayHdr;
+      }
+    }
+    // Find header row (may not be row 0)
+    for (let i = 0; i < Math.min(xlsxRatesRaw.length, 5); i++) {
+      const row = xlsxRatesRaw[i];
+      if (row && row.some(v => String(v||'').toLowerCase().includes('name'))) {
+        for (let c = 0; c < row.length; c++) {
+          const addr = XLSX.utils.encode_cell({r:i,c:c});
+          if (hrWs[addr]) hrWs[addr].s = sGrayHdr;
+        }
+        break;
+      }
+    }
+    hrWs['!cols'] = [{wch:22},{wch:10},{wch:30},{wch:8}];
+  } else {
+    // Build from xlsxRates object
+    const hrData = [['Full Name', 'Pay Rate']];
+    Object.entries(xlsxRates).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, rate]) => {
+      hrData.push([name, rate]);
+    });
+    hrWs = XLSX.utils.aoa_to_sheet(hrData);
+    const hAddr = XLSX.utils.encode_cell({r:0,c:0});
+    const hAddr2 = XLSX.utils.encode_cell({r:0,c:1});
+    if (hrWs[hAddr]) hrWs[hAddr].s = sGrayHdr;
+    if (hrWs[hAddr2]) hrWs[hAddr2].s = sGrayHdr;
+    hrWs['!cols'] = [{wch:22},{wch:10}];
+  }
+
+  // ======== Assemble workbook in reference order ========
+  // Reference order: Summary, Data, New Crysp, Rate Calculation, Hourly Rates
+  // We already added New Crysp and Rate Calculation, so rebuild in correct order
+  const wbFinal = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbFinal, sumWs, 'Summary');
+  XLSX.utils.book_append_sheet(wbFinal, dataWs, 'Data');
+  XLSX.utils.book_append_sheet(wbFinal, ws, 'New Crysp');
+  XLSX.utils.book_append_sheet(wbFinal, rcWs, 'Rate Calculation');
+  XLSX.utils.book_append_sheet(wbFinal, hrWs, 'Hourly Rates');
+
+  XLSX.writeFile(wbFinal, 'Crysp_House_Hours_Output.xlsx');
+}
+
+// CSV export removed — XLSX only
+</script>
+</body>
+</html>
