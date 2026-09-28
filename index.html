@@ -358,49 +358,19 @@ function handleXLSX(input) {
         t.double = round(t.double, 10);
       });
 
-      // Read rates from weekly "Data" sheet (primary source)
+      // Read "Hourly Rates" sheet
       xlsxRates = {};
       xlsxRatesRaw = [];
-      const dataSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'data');
-      if (dataSheetName) {
-        const dataWs = workbook.Sheets[dataSheetName];
-        const dataRows = XLSX.utils.sheet_to_json(dataWs, { header: 1 });
-        if (dataRows.length > 0) {
-          const hdr = dataRows[0];
-          let fnCol = -1, prCol = -1;
-          for (let j = 0; j < hdr.length; j++) {
-            const v = String(hdr[j] || '').toLowerCase().trim();
-            if (v === 'fullname' || v === 'full name') fnCol = j;
-            if (v === 'payrate' || v === 'pay rate') prCol = j;
-          }
-          if (fnCol >= 0 && prCol >= 0) {
-            for (let k = 1; k < dataRows.length; k++) {
-              const dr = dataRows[k];
-              if (!dr || !dr[fnCol]) continue;
-              const empName = String(dr[fnCol]).trim();
-              const empRate = parseFloat(dr[prCol]);
-              if (empName && !isNaN(empRate) && empRate > 0 && !xlsxRates[empName]) {
-                xlsxRates[empName] = empRate;
-              }
-            }
-          }
-        }
-      }
-
-      // Still read "Hourly Rates" sheet raw data for export only (not for rate lookup)
       const rateSheetName = workbook.SheetNames.find(n =>
         n.toLowerCase().includes('hourly rate')
       );
       if (rateSheetName) {
         const rateWs = workbook.Sheets[rateSheetName];
-        xlsxRatesRaw = XLSX.utils.sheet_to_json(rateWs, { header: 1 });
-      }
-
-      // Fallback: if Data sheet had no rates, try Hourly Rates sheet
-      if (Object.keys(xlsxRates).length === 0 && xlsxRatesRaw.length > 0) {
+        const rateRows = XLSX.utils.sheet_to_json(rateWs, { header: 1 });
+        xlsxRatesRaw = rateRows; // store raw for export
         let nameCol = -1, rateCol = -1;
-        for (let i = 0; i < Math.min(xlsxRatesRaw.length, 5); i++) {
-          const row = xlsxRatesRaw[i];
+        for (let i = 0; i < Math.min(rateRows.length, 5); i++) {
+          const row = rateRows[i];
           if (!row) continue;
           for (let j = 0; j < row.length; j++) {
             const val = String(row[j] || '').toLowerCase().trim();
@@ -408,8 +378,8 @@ function handleXLSX(input) {
             if (val.includes('pay rate') || val.includes('rate')) rateCol = j;
           }
           if (nameCol >= 0 && rateCol >= 0) {
-            for (let k = i + 1; k < xlsxRatesRaw.length; k++) {
-              const dr = xlsxRatesRaw[k];
+            for (let k = i + 1; k < rateRows.length; k++) {
+              const dr = rateRows[k];
               if (!dr || !dr[nameCol]) continue;
               const empName = String(dr[nameCol]).trim();
               const empRate = parseFloat(dr[rateCol]);
@@ -420,6 +390,33 @@ function handleXLSX(input) {
             break;
           }
         }
+      }
+
+      // Fallback: read from Data sheet
+      if (Object.keys(xlsxRates).length === 0) {
+        const dataSheetName = workbook.SheetNames.find(n => n.toLowerCase() === 'data');
+        if (dataSheetName) {
+          const dataWs = workbook.Sheets[dataSheetName];
+          const dataRows = XLSX.utils.sheet_to_json(dataWs, { header: 1 });
+          if (dataRows.length > 0) {
+            const hdr = dataRows[0];
+            let fnCol = -1, prCol = -1;
+            for (let j = 0; j < hdr.length; j++) {
+              const v = String(hdr[j] || '').toLowerCase().trim();
+              if (v === 'fullname' || v === 'full name') fnCol = j;
+              if (v === 'payrate' || v === 'pay rate') prCol = j;
+            }
+            if (fnCol >= 0 && prCol >= 0) {
+              for (let k = 1; k < dataRows.length; k++) {
+                const dr = dataRows[k];
+                if (!dr || !dr[fnCol]) continue;
+                const empName = String(dr[fnCol]).trim();
+                const empRate = parseFloat(dr[prCol]);
+                if (empName && !isNaN(empRate) && empRate > 0 && !xlsxRates[empName]) {
+                  xlsxRates[empName] = empRate;
+                }
+              }
+            }
           }
         }
       }
