@@ -581,19 +581,31 @@ function processData() {
     const clubhouseHours = round(entityHours.Clubhouse || 0, 10);
     const bluntdHours = round(entityHours.BluntD || 0, 10);
 
-    // Entity ratios (rounded to 2 decimal places)
-    const crispRatio = totalWorkHours > 0 ? round(crispHours / totalWorkHours, 2) : 0;
-    const clubhouseRatio = totalWorkHours > 0 ? round(clubhouseHours / totalWorkHours, 2) : 0;
-    const bluntdRatio = totalWorkHours > 0 ? round(bluntdHours / totalWorkHours, 2) : 0;
+    // Entity ratios: keep FULL PRECISION for the actual billing math — this
+    // is what gets multiplied into Regular/OT hours below. Rounding a ratio
+    // like 0.3380... down to 0.34 before doing that math throws off every
+    // dollar figure downstream (verified against the reference workbook:
+    // Genesis Lopez's "New summary(working)" Clubhouse hours, 25.82769068,
+    // only reproduce exactly with the unrounded ratio — rounding to 2dp
+    // first gives 25.97, which is wrong).
+    const crispRatioExact = totalWorkHours > 0 ? (crispHours / totalWorkHours) : 0;
+    const clubhouseRatioExact = totalWorkHours > 0 ? (clubhouseHours / totalWorkHours) : 0;
+    const bluntdRatioExact = totalWorkHours > 0 ? (bluntdHours / totalWorkHours) : 0;
+    // Rounded versions are ONLY for display in the ratio table — never used
+    // in a calculation.
+    const crispRatio = round(crispRatioExact, 2);
+    const clubhouseRatio = round(clubhouseRatioExact, 2);
+    const bluntdRatio = round(bluntdRatioExact, 2);
 
     // XLSX Overtime data
     const xlsxTotals = overtimeTotalsByEmp[empName] || { total: 0, reg: 0, ot: 0, double: 0 };
     const totalReg = xlsxTotals.reg;
     const totalOT = xlsxTotals.ot;
 
-    // Crysp-specific hours = XLSX hours × Crysp ratio
-    const crispReg = totalReg * crispRatio;
-    const crispOT = totalOT * crispRatio;
+    // Crysp-specific hours = XLSX hours × Crysp ratio — use the EXACT ratio,
+    // not the rounded display value.
+    const crispReg = totalReg * crispRatioExact;
+    const crispOT = totalOT * crispRatioExact;
 
     // Hourly rate from XLSX
     const rate = xlsxRates[empName] || 0;
