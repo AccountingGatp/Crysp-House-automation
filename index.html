@@ -515,13 +515,23 @@ function getConfig() {
 }
 
 function isBreak(jc) { return jc === 'Rest break' || jc === 'Lunch break'; }
+// Job-code -> billing entity. "Bluntd Cones" is BluntD's job code and
+// "Clubhouse Drops" is Clubhouse's job code (these were swapped before,
+// which put every Clubhouse/BluntD employee's hours under the wrong
+// entity column). RSC is its own bucket, never one of the three billable
+// entities (Clubhouse/BluntD/Crysp) — see ENTITY_NAMES below.
 function mapEntity(jc) {
   if (jc === 'Crysp') return 'Crysp';
-  if (jc === 'Bluntd Cones') return 'Clubhouse';
-  if (jc === 'Clubhouse Drops') return 'BluntD';
+  if (jc === 'Bluntd Cones') return 'BluntD';
+  if (jc === 'Clubhouse Drops') return 'Clubhouse';
   if (jc === 'RSC') return 'RSC';
   return 'Other';
 }
+// The only entities that ever get billed / count toward an entity ratio.
+// RSC and anything unrecognized ("Other") are real paid time but must
+// never be included in the ratio denominator — per the SOP and HR's
+// explicit instruction not to use RSC when picking these hours.
+const BILLABLE_ENTITIES = new Set(['Clubhouse', 'BluntD', 'Crysp']);
 function round(val, dp) { return Math.round(val * Math.pow(10, dp)) / Math.pow(10, dp); }
 function fmt(val, dp=2) { return val.toFixed(dp); }
 function fmtCurrency(val) { return '$' + val.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
@@ -559,7 +569,11 @@ function processData() {
       if (isBreak(r.jobcode1)) return;
       const entity = mapEntity(r.jobcode1);
       entityHours[entity] = (entityHours[entity] || 0) + r.hours;
-      totalWorkHours += r.hours;
+      // Only Clubhouse/BluntD/Crysp work counts toward the ratio
+      // denominator. RSC (and any other unmapped job code) is real paid
+      // time but must never dilute the entity ratio — it isn't Clubhouse,
+      // BluntD or Crysp work, so it can't be "picked" for billing here.
+      if (BILLABLE_ENTITIES.has(entity)) totalWorkHours += r.hours;
     });
 
     totalWorkHours = round(totalWorkHours, 10);
