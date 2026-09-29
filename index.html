@@ -3,53 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crysp House Hours Calculator</title>
+<title>Crysp House Hours Calculator — GATP Solutions</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
 :root {
-  --bg: #f8f9fa;
+  --bg: #f4f6f9;
   --card: #ffffff;
-  --border: #dee2e6;
-  --primary: #2563eb;
-  --primary-light: #dbeafe;
+  --border: #e2e6ec;
+  --primary: #1e6fb8;
+  --primary-dark: #145a94;
+  --primary-light: #e6f1fb;
+  --accent: #e53935;
+  --accent-light: #fdecea;
   --text: #1f2937;
   --text-muted: #6b7280;
   --success: #059669;
+  --success-light: #e6f7f0;
   --warning: #d97706;
   --danger: #dc2626;
-  --accent: #7c3aed;
-  --shadow: 0 1px 3px rgba(0,0,0,0.1);
-  --radius: 8px;
+  --shadow: 0 1px 3px rgba(20,40,70,0.08), 0 1px 2px rgba(20,40,70,0.06);
+  --shadow-lg: 0 8px 24px rgba(20,40,70,0.10);
+  --radius: 10px;
+  --radius-sm: 6px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111827; --card: #1f2937; --border: #374151;
-    --text: #f3f4f6; --text-muted: #9ca3af;
-    --primary-light: #1e3a5f;
-    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --bg: #0f1520; --card: #171f2b; --border: #2a3444;
+    --text: #e8edf4; --text-muted: #93a1b5;
+    --primary-light: #14293d; --accent-light: #3a1f1e;
+    --success-light: #0f2a22;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111827; --card: #1f2937; --border: #374151;
-  --text: #f3f4f6; --text-muted: #9ca3af;
-  --primary-light: #1e3a5f;
-  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --bg: #0f1520; --card: #171f2b; --border: #2a3444;
+  --text: #e8edf4; --text-muted: #93a1b5;
+  --primary-light: #14293d; --accent-light: #3a1f1e;
+  --success-light: #0f2a22;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg); color: var(--text);
-  line-height: 1.5; padding: 16px;
+  line-height: 1.5; padding: 0 0 40px;
 }
-.container { max-width: 1500px; margin: 0 auto; }
+.container { max-width: 1500px; margin: 0 auto; padding: 0 16px; }
+
+/* ===== Brand header ===== */
+.brand-bar {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: #fff; padding: 14px 0; margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.brand-bar .container { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.brand-id { display: flex; align-items: center; gap: 10px; }
+.brand-logo {
+  width: 38px; height: 38px; border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+}
+.brand-name { font-weight: 700; font-size: 1rem; letter-spacing: 0.3px; line-height: 1.1; }
+.brand-tag { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.5px; }
+.brand-client { font-size: 0.8rem; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 99px; font-weight: 600; letter-spacing: 0.3px; }
+
+.page-head { margin-bottom: 18px; }
 h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
 h2 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 10px; color: var(--primary); }
-.subtitle { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 16px; }
+.subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 4px; }
+
+/* ===== Step tracker ===== */
+.steps { display: flex; gap: 6px; margin: 14px 0 20px; flex-wrap: wrap; }
+.step {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 99px;
+  font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
+  box-shadow: var(--shadow); transition: all 0.2s;
+}
+.step .num {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--border);
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; flex-shrink: 0;
+}
+.step.active { color: var(--primary); border-color: var(--primary); background: var(--primary-light); }
+.step.active .num { background: var(--primary); color: #fff; }
+.step.done { color: var(--success); }
+.step.done .num { background: var(--success); color: #fff; }
+
 .card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
   box-shadow: var(--shadow);
 }
+.card-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+.card-title-row h2 { margin: 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 @media (max-width: 768px) {
@@ -57,43 +106,52 @@ h2 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 10px; color: var(--prim
 }
 .upload-zone {
   border: 2px dashed var(--border); border-radius: var(--radius);
-  padding: 24px; text-align: center; cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  padding: 26px 20px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  position: relative;
 }
+.upload-zone:hover { transform: translateY(-1px); }
 .upload-zone:hover, .upload-zone.dragover {
   border-color: var(--primary); background: var(--primary-light);
 }
 .upload-zone input { display: none; }
 .upload-zone .icon { font-size: 2rem; margin-bottom: 8px; }
 .upload-zone .label { font-weight: 600; }
-.upload-zone .hint { font-size: 0.8rem; color: var(--text-muted); }
-.upload-zone.loaded { border-color: var(--success); border-style: solid; }
-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-input[type="number"], input[type="text"], select {
-  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
-  border-radius: 6px; font-size: 0.9rem; background: var(--card); color: var(--text);
+.upload-zone .hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.upload-zone.loaded { border-color: var(--success); border-style: solid; background: var(--success-light); }
+.upload-zone.loaded .icon::after { content: ' ✓'; color: var(--success); }
+label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+label .field-help {
+  text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-muted);
+  display: block; font-size: 0.74rem; margin-top: 2px; opacity: 0.85;
 }
-input[type="number"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+input[type="number"], input[type="text"], select {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--card); color: var(--text);
+}
+input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30,111,184,0.12); }
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border: none; border-radius: 6px;
+  padding: 9px 18px; border: none; border-radius: var(--radius-sm);
   font-size: 0.875rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 .btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:hover { background: var(--primary-dark); }
 .btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { filter: brightness(1.08); }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-.btn-outline:hover { background: var(--primary-light); }
+.btn-outline:hover { background: var(--primary-light); border-color: var(--primary); }
 table {
   width: 100%; border-collapse: collapse; font-size: 0.85rem;
 }
 th {
-  text-align: left; padding: 8px 10px; font-weight: 600;
+  text-align: left; padding: 9px 10px; font-weight: 700; font-size: 0.78rem;
   border-bottom: 2px solid var(--border); white-space: nowrap;
-  background: #e5e7eb; color: #1f2937;
+  background: #eef1f6; color: #33404f; text-transform: uppercase; letter-spacing: 0.3px;
 }
-td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+:root[data-theme="dark"] th, @media (prefers-color-scheme: dark) { }
+td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
 tr:hover td { background: var(--primary-light); }
 .text-right { text-align: right; }
 .text-center { text-align: center; }
@@ -122,7 +180,7 @@ tr:hover td { background: var(--primary-light); }
   display: inline-block;
 }
 .note { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; font-style: italic; }
-.table-wrapper { overflow-x: auto; }
+.table-wrapper { overflow-x: auto; border-radius: var(--radius-sm); }
 .hidden { display: none !important; }
 .mb-16 { margin-bottom: 16px; }
 .mt-8 { margin-top: 8px; }
@@ -132,28 +190,29 @@ tr:hover td { background: var(--primary-light); }
 }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .editable-rate {
-  width: 80px; padding: 2px 6px; border: 1px solid transparent;
+  width: 90px; padding: 3px 6px; border: 1px solid transparent;
   background: transparent; text-align: right; font-family: inherit;
   font-size: inherit; color: inherit; border-radius: 4px;
 }
 .editable-rate:hover { border-color: var(--border); }
 .editable-rate:focus { border-color: var(--primary); background: var(--card); outline: none; }
 .status-bar {
-  display: flex; gap: 16px; align-items: center; padding: 10px 16px;
+  display: flex; gap: 20px; align-items: center; padding: 12px 16px;
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); margin-bottom: 16px; font-size: 0.85rem;
   flex-wrap: wrap;
 }
-.status-item { display: flex; align-items: center; gap: 6px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.ready { background: var(--success); }
+.status-item { display: flex; align-items: center; gap: 7px; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; transition: background 0.2s; }
+.status-dot.ready { background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
 .status-dot.waiting { background: var(--border); }
 .stat-card {
   padding: 16px; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--card);
+  transition: transform 0.15s;
 }
-.stat-card .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
-.stat-card .stat-value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+.stat-card .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700; }
+.stat-card .stat-value { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
 .stat-card .stat-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
 .toggle {
   position: relative; width: 36px; height: 20px;
@@ -168,7 +227,7 @@ tr:hover td { background: var(--primary-light); }
 }
 .toggle.on::after { transform: translateX(16px); }
 .excluded td { opacity: 0.5; text-decoration: line-through; }
-.config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 18px; }
 @media (max-width: 768px) { .config-grid { grid-template-columns: 1fr; } }
 .ratio-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 @media (max-width: 900px) { .ratio-tables { grid-template-columns: 1fr; } }
@@ -177,18 +236,56 @@ tr:hover td { background: var(--primary-light); }
 @media (max-width: 500px) { .entity-tables { grid-template-columns: 1fr; } }
 .entity-tables table { font-size: 0.82rem; }
 .entity-tables th, .entity-tables td { padding: 4px 8px; }
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--text-muted);
+}
+.empty-state .icon { font-size: 2.4rem; margin-bottom: 10px; opacity: 0.7; }
+.footer-note {
+  text-align: center; font-size: 0.78rem; color: var(--text-muted);
+  margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border);
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header-bar">
-    <div>
-      <h1>Crysp House Hours Calculator</h1>
-      <p class="subtitle">Upload timesheet CSV and weekly hours XLSX to generate billing — output matches Crysp House Hours format.</p>
+<div class="brand-bar">
+  <div class="container">
+    <div class="brand-id">
+      <div class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 6c9.94 0 18 8.06 18 18 0 6.2-3.14 11.67-7.92 14.9" stroke="#1e6fb8" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M9 33 C7 27 7 21 9 15" stroke="#1e6fb8" stroke-width="3.4" stroke-linecap="round"/>
+          <path d="M17 10 L20 24" stroke="#e53935" stroke-width="3" stroke-linecap="round"/>
+          <path d="M23 8 L25 24" stroke="#e53935" stroke-width="3" stroke-linecap="round"/>
+          <path d="M29 9 L29 24" stroke="#e53935" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">GATP Solutions</div>
+        <div class="brand-tag">Payroll &amp; Billing Automation</div>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-success hidden" id="exportBtn" onclick="exportXLSX()">&#x1F4BE; Export XLSX</button>
-      <button class="btn btn-outline hidden" id="exportCsvBtn" onclick="exportCSV()">Export CSV</button>
+    <div class="brand-client">Billing client: Bravura</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <div class="header-bar">
+      <div>
+        <h1>Crysp House Hours Calculator</h1>
+        <p class="subtitle">Upload this week's timesheet CSV and payroll XLSX to generate the Crysp bill to Bravura.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-success hidden" id="exportBtn" onclick="exportXLSX()">💾 Export XLSX</button>
+        <button class="btn btn-outline hidden" id="exportCsvBtn" onclick="exportCSV()">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="steps" id="stepsTracker">
+      <div class="step" id="step1"><span class="num">1</span> Upload files</div>
+      <div class="step" id="step2"><span class="num">2</span> Check configuration</div>
+      <div class="step" id="step3"><span class="num">3</span> Review &amp; adjust</div>
+      <div class="step" id="step4"><span class="num">4</span> Export</div>
     </div>
   </div>
 
@@ -202,44 +299,59 @@ tr:hover td { background: var(--primary-light); }
   <div class="grid-2 mb-16">
     <div class="upload-zone" id="csvZone" onclick="document.getElementById('csvInput').click()">
       <input type="file" id="csvInput" accept=".csv" onchange="handleCSV(this)">
-      <div class="icon">&#x1F4C4;</div>
+      <div class="icon">📄</div>
       <div class="label" id="csvLabel">Upload Timesheet CSV</div>
-      <div class="hint">timesheet_report_*.csv (entity hours)</div>
+      <div class="hint">timesheet_report_*.csv — from QuickBooks Time, used for entity hours &amp; RSC/break filtering only</div>
     </div>
     <div class="upload-zone" id="xlsxZone" onclick="document.getElementById('xlsxInput').click()">
       <input type="file" id="xlsxInput" accept=".xlsx,.xls" onchange="handleXLSX(this)">
-      <div class="icon">&#x1F4CA;</div>
+      <div class="icon">📊</div>
       <div class="label" id="xlsxLabel">Upload Weekly Hours XLSX</div>
-      <div class="hint">Week_*.xlsx (Overtime Calculation + Hourly Rates)</div>
+      <div class="hint">Week_*.xlsx — needs "Overtime Calculation" + "Hourly Rates" sheets</div>
     </div>
   </div>
 
   <!-- Config Section -->
   <div class="card mb-16" id="configSection">
-    <h2 style="margin-top:0">Configuration</h2>
+    <div class="card-title-row">
+      <h2 style="margin-top:0">Configuration</h2>
+      <span class="note" style="margin-top:0">Values below are pre-filled from the current SOP — change them only if this week's rates are different.</span>
+    </div>
     <div class="config-grid">
       <div>
-        <label>Base Employer Tax Rate (%)</label>
+        <label>Base Employer Tax Rate (%)
+          <span class="field-help">Standard FICA employer rate. Confirm against this week's Gusto statement.</span>
+        </label>
         <input type="number" id="taxRate" value="7.65" step="0.001" onchange="recalculate()">
       </div>
       <div>
-        <label>Supervision WC Rate (e.g. Carlos)</label>
+        <label>Supervision WC Rate
+          <span class="field-help">Workers' comp rate for supervision staff (e.g. Carlos).</span>
+        </label>
         <input type="number" id="wcRateSupervision" value="0.004996" step="0.000001" onchange="recalculate()">
       </div>
       <div>
-        <label>Production WC Rate (others)</label>
+        <label>Production WC Rate
+          <span class="field-help">Workers' comp rate for everyone else.</span>
+        </label>
         <input type="number" id="wcRateProduction" value="0.041133" step="0.000001" onchange="recalculate()">
       </div>
       <div>
-        <label>Service Charge (%)</label>
+        <label>Service Charge (%)
+          <span class="field-help">Added on top of the total bill before the grand total.</span>
+        </label>
         <input type="number" id="serviceCharge" value="10" step="0.1" onchange="recalculate()">
       </div>
       <div>
-        <label>Supervision Employees (comma-separated)</label>
+        <label>Supervision Employees
+          <span class="field-help">Comma-separated names that get the Supervision WC rate.</span>
+        </label>
         <input type="text" id="supervisionEmployees" value="Carlos Silva" onchange="recalculate()">
       </div>
       <div>
-        <label>Default Exclusions (comma-separated)</label>
+        <label>Default Exclusions
+          <span class="field-help">Employees who work exclusively for RSC — never billed here.</span>
+        </label>
         <input type="text" id="defaultExclusions" value="Hazel Herrera, Elysia Castro, Paul Bates" onchange="recalculate()">
       </div>
     </div>
@@ -255,6 +367,14 @@ tr:hover td { background: var(--primary-light); }
       <div id="fullOutput"></div>
     </div>
   </div>
+
+  <div id="emptyState" class="card empty-state">
+    <div class="icon">📁</div>
+    <div style="font-weight:600; margin-bottom:4px;">No data loaded yet</div>
+    <div class="text-muted" style="font-size:0.85rem;">Upload the timesheet CSV and the weekly hours XLSX above to see the Crysp billing breakdown.</div>
+  </div>
+
+  <div class="footer-note">GATP Solutions · Crysp House Hours Calculator · Internal billing tool for Bravura</div>
 </div>
 
 <script>
@@ -287,6 +407,7 @@ function handleCSV(input) {
     document.getElementById('csvDot').classList.add('ready');
     document.getElementById('csvDot').classList.remove('waiting');
     document.getElementById('csvStatus').textContent = 'CSV: ' + timesheetRaw.length + ' rows';
+    updateSteps();
     tryProcess();
   };
   reader.readAsText(file);
@@ -426,6 +547,7 @@ function handleXLSX(input) {
       document.getElementById('xlsxDot').classList.add('ready');
       document.getElementById('xlsxDot').classList.remove('waiting');
       document.getElementById('xlsxStatus').textContent = 'XLSX: ' + Object.keys(overtimeTotalsByEmp).length + ' employees, ' + rateCount + ' rates';
+      updateSteps();
       tryProcess();
     } catch(err) {
       alert('Error reading XLSX: ' + err.message);
@@ -659,6 +781,7 @@ function processData() {
   employeeResults.sort((a, b) => a.name.localeCompare(b.name));
 
   renderAll();
+  updateSteps();
 }
 
 // ============================================================
@@ -666,6 +789,7 @@ function processData() {
 // ============================================================
 function renderAll() {
   document.getElementById('results').classList.remove('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('exportBtn').classList.remove('hidden');
   document.getElementById('exportCsvBtn').classList.remove('hidden');
 
@@ -844,6 +968,31 @@ function renderAll() {
 function escapeAttr(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
+
+// ============================================================
+// STEP TRACKER
+// ============================================================
+function updateSteps() {
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const s3 = document.getElementById('step3');
+  const s4 = document.getElementById('step4');
+  [s1, s2, s3, s4].forEach(s => s.classList.remove('active', 'done'));
+
+  if (!csvLoaded || !xlsxLoaded) {
+    s1.classList.add('active');
+    return;
+  }
+  s1.classList.add('done');
+  if (employeeResults.length === 0) {
+    s2.classList.add('active');
+    return;
+  }
+  s2.classList.add('done');
+  s3.classList.add('active');
+  s4.classList.add(employeeResults.length > 0 ? 'active' : '');
+}
+updateSteps();
 
 // ============================================================
 // INTERACTIONS
