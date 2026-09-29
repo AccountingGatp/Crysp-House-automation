@@ -637,15 +637,23 @@ function getConfig() {
 }
 
 function isBreak(jc) { return jc === 'Rest break' || jc === 'Lunch break'; }
-// Job-code -> billing entity. "Bluntd Cones" is BluntD's job code and
-// "Clubhouse Drops" is Clubhouse's job code (these were swapped before,
-// which put every Clubhouse/BluntD employee's hours under the wrong
-// entity column). RSC is its own bucket, never one of the three billable
-// entities (Clubhouse/BluntD/Crysp) — see ENTITY_NAMES below.
+// Job-code -> billing entity. Counter-intuitive but confirmed against the
+// human-reviewed reference sheet and real timesheet data (Aug 24-30 2026
+// week): job code "Bluntd Cones" bills to the CLUBHOUSE entity, and job
+// code "Clubhouse Drops" bills to the BLUNTD entity. (Carlos/Genesis only
+// ever log "Bluntd Cones" hours and the reference sheet puts 100% of that
+// under their Clubhouse ratio column, e.g. Carlos 16.34/40.60 = 0.40 ==
+// reference "Clubhouse" 0.40; Paola/Sylvia only log "Clubhouse Drops" and
+// the reference puts that under BluntD, e.g. Paola 34.5/38.05 = 0.91 ==
+// reference "BluntD" 0.91.) A previous fix here swapped these the wrong
+// way based on the job-code names sounding self-evident — they aren't;
+// the job code describes a production step, not the billing entity it
+// pays into. RSC is its own bucket, never one of the three billable
+// entities (Clubhouse/BluntD/Crysp) — see BILLABLE_ENTITIES below.
 function mapEntity(jc) {
   if (jc === 'Crysp') return 'Crysp';
-  if (jc === 'Bluntd Cones') return 'BluntD';
-  if (jc === 'Clubhouse Drops') return 'Clubhouse';
+  if (jc === 'Bluntd Cones') return 'Clubhouse';
+  if (jc === 'Clubhouse Drops') return 'BluntD';
   if (jc === 'RSC') return 'RSC';
   return 'Other';
 }
