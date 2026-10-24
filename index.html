@@ -5,26 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crysp House Hours Calculator — GATP Solutions</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f4f6f9;
+  /* Navy/blue "B2B Service" professional palette, blended with the GATP mark */
+  --bg: #f8fafc;
   --card: #ffffff;
-  --border: #e2e6ec;
+  --border: #e2e8f0;
+  --navy: #0f172a;
+  --navy-dark: #0b1220;
   --primary: #1e6fb8;
   --primary-dark: #145a94;
-  --primary-light: #e6f1fb;
+  --primary-light: #e8edf5;
   --accent: #e53935;
   --accent-light: #fdecea;
   --text: #1f2937;
-  --text-muted: #6b7280;
+  --text-muted: #64748b;
   --success: #059669;
   --success-light: #e6f7f0;
   --warning: #d97706;
   --danger: #dc2626;
-  --shadow: 0 1px 3px rgba(20,40,70,0.08), 0 1px 2px rgba(20,40,70,0.06);
-  --shadow-lg: 0 8px 24px rgba(20,40,70,0.10);
+  --shadow: 0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-lg: 0 8px 24px rgba(15,23,42,0.10);
   --radius: 10px;
   --radius-sm: 6px;
+  --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -45,16 +53,20 @@
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+*:focus-visible {
+  outline: 3px solid var(--primary); outline-offset: 2px; border-radius: 3px;
+}
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg); color: var(--text);
   line-height: 1.5; padding: 0 0 40px;
 }
+h1, h2, .brand-name, .btn, .stat-card .stat-value { font-family: var(--font-heading); }
 .container { max-width: 1500px; margin: 0 auto; padding: 0 16px; }
 
 /* ===== Brand header ===== */
 .brand-bar {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy) 55%, var(--primary-dark));
   color: #fff; padding: 14px 0; margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
@@ -65,14 +77,15 @@ body {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
 }
-.brand-name { font-weight: 700; font-size: 1rem; letter-spacing: 0.3px; line-height: 1.1; }
-.brand-tag { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.5px; }
+.brand-name { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.4px; line-height: 1.1; }
+.brand-tag { font-size: 0.72rem; opacity: 0.85; letter-spacing: 0.5px; font-family: var(--font-body); }
 .brand-client { font-size: 0.8rem; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 99px; font-weight: 600; letter-spacing: 0.3px; }
 
 .page-head { margin-bottom: 18px; }
-h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; color: var(--navy); }
 h2 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 10px; color: var(--primary); }
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 4px; }
+.required-mark { color: var(--accent); font-weight: 700; margin-left: 2px; }
 
 /* ===== Step tracker ===== */
 .steps { display: flex; gap: 6px; margin: 14px 0 20px; flex-wrap: wrap; }
@@ -300,13 +313,13 @@ tr:hover td { background: var(--primary-light); }
     <div class="upload-zone" id="csvZone" onclick="document.getElementById('csvInput').click()">
       <input type="file" id="csvInput" accept=".csv" onchange="handleCSV(this)">
       <div class="icon">📄</div>
-      <div class="label" id="csvLabel">Upload Timesheet CSV</div>
+      <div class="label" id="csvLabel">Upload Timesheet CSV<span class="required-mark" title="Required">*</span></div>
       <div class="hint">timesheet_report_*.csv — from QuickBooks Time, used for entity hours &amp; RSC/break filtering only</div>
     </div>
     <div class="upload-zone" id="xlsxZone" onclick="document.getElementById('xlsxInput').click()">
       <input type="file" id="xlsxInput" accept=".xlsx,.xls" onchange="handleXLSX(this)">
       <div class="icon">📊</div>
-      <div class="label" id="xlsxLabel">Upload Weekly Hours XLSX</div>
+      <div class="label" id="xlsxLabel">Upload Weekly Hours XLSX<span class="required-mark" title="Required">*</span></div>
       <div class="hint">Week_*.xlsx — needs "Overtime Calculation" + "Hourly Rates" sheets</div>
     </div>
   </div>
@@ -711,18 +724,23 @@ function processData() {
     const clubhouseHours = round(entityHours.Clubhouse || 0, 10);
     const bluntdHours = round(entityHours.BluntD || 0, 10);
 
-    // Entity ratios: keep FULL PRECISION for the actual billing math — this
-    // is what gets multiplied into Regular/OT hours below. Rounding a ratio
-    // like 0.3380... down to 0.34 before doing that math throws off every
-    // dollar figure downstream (verified against the reference workbook:
-    // Genesis Lopez's "New summary(working)" Clubhouse hours, 25.82769068,
-    // only reproduce exactly with the unrounded ratio — rounding to 2dp
-    // first gives 25.97, which is wrong).
+    // Entity ratios. For THIS tool (Crysp House Hours Calculator / Bravura
+    // billing), the official calculation rounds the ratio to 2 decimal
+    // places FIRST, then multiplies it into Regular/OT hours — confirmed
+    // against the manually-calculated reference workbook for the Oct 12-18
+    // 2026 week: Carlos Silva, Crysp ratio = 15.65/39.07 = 0.400563 exact,
+    // but the reference's Gross (Regular) of 479.76 and Gross (OT) of 28.62
+    // only reproduce using the ROUNDED ratio 0.40 (39.98*0.40=15.992 ->
+    // *$30 = 479.76; 1.59*0.40=0.636 -> *$45 = 28.62). Using the exact
+    // ratio instead gives 480.44 / 28.66 — about $1 off, which is the bug
+    // reported against this data. NOTE: this is the opposite rule from the
+    // Clubhouse Payroll Ledger tool (LXP billing), which was separately
+    // verified to require the UNROUNDED ratio — the two tools are
+    // maintained independently and don't share a precision convention, so
+    // each must be checked against its own reference rather than assumed.
     const crispRatioExact = totalWorkHours > 0 ? (crispHours / totalWorkHours) : 0;
     const clubhouseRatioExact = totalWorkHours > 0 ? (clubhouseHours / totalWorkHours) : 0;
     const bluntdRatioExact = totalWorkHours > 0 ? (bluntdHours / totalWorkHours) : 0;
-    // Rounded versions are ONLY for display in the ratio table — never used
-    // in a calculation.
     const crispRatio = round(crispRatioExact, 2);
     const clubhouseRatio = round(clubhouseRatioExact, 2);
     const bluntdRatio = round(bluntdRatioExact, 2);
@@ -732,10 +750,10 @@ function processData() {
     const totalReg = xlsxTotals.reg;
     const totalOT = xlsxTotals.ot;
 
-    // Crysp-specific hours = XLSX hours × Crysp ratio — use the EXACT ratio,
-    // not the rounded display value.
-    const crispReg = totalReg * crispRatioExact;
-    const crispOT = totalOT * crispRatioExact;
+    // Crysp-specific hours = XLSX hours × Crysp ratio — uses the ROUNDED
+    // (2dp) ratio per the reference workbook, see note above.
+    const crispReg = totalReg * crispRatio;
+    const crispOT = totalOT * crispRatio;
 
     // Hourly rate from XLSX
     const rate = xlsxRates[empName] || 0;
@@ -885,7 +903,13 @@ function renderAll() {
   html += `</div>`;
 
   // --- Section 3: Billing Table ---
-  html += `<div class="section-title" style="margin-top:28px">Billing Calculation</div>`;
+  html += `<div class="card-title-row" style="margin-top:28px">
+    <div class="section-title" style="margin-top:0">Billing Calculation</div>
+    <span>
+      <button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem" onclick="setAllExclusion(false)">Include all</button>
+      <button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem" onclick="setAllExclusion(true)">Exclude all</button>
+    </span>
+  </div>`;
   html += `<div class="table-wrapper"><table>
     <thead><tr>
       <th style="width:30px">Incl</th>
@@ -1007,6 +1031,13 @@ updateSteps();
 // ============================================================
 function toggleExclusion(name, el) {
   employeeExclusions[name] = !employeeExclusions[name];
+  processData();
+}
+
+// Bulk include/exclude — per the "Bulk Actions" UX guideline (avoid making
+// people toggle rows one at a time). Does not touch any billing math.
+function setAllExclusion(excluded) {
+  employeeResults.forEach(e => { employeeExclusions[e.name] = excluded; });
   processData();
 }
 
